@@ -68,8 +68,9 @@ OPTIONS:
 
 All commands output JSON by default for easy parsing by AI agents.`;
 
+let compact = false;
 function out(data) {
-  console.log(JSON.stringify(data, null, 2));
+  console.log(JSON.stringify(data, compact ? undefined : null, compact ? undefined : 2));
 }
 
 function die(msg) {
@@ -87,6 +88,7 @@ function parseArgs(argv) {
     const a = args[i];
     if (a === '--json') flags.json = true;
     else if (a === '--raw') flags.raw = true;
+    else if (a === '--compact') flags.compact = true;
     else if (a === '--help') flags.help = true;
     else if (a === '--apply') flags.apply = true;
     else if (a === '-o' && i + 1 < args.length) flags.output = args[++i];
@@ -155,6 +157,7 @@ async function readDocViaSocket(cookie, projectId, filePath) {
 
 async function main() {
   const { cmd, positional, flags } = parseArgs(process.argv);
+  compact = !!flags.compact;
 
   if (!cmd || cmd === 'help' || flags.help) {
     console.log(USAGE);
@@ -420,7 +423,20 @@ async function main() {
     case 'threads': {
       const projectId = positional[0];
       if (!projectId) die('Usage: overleaf threads <project-id>');
-      out(await api.getThreads(projectId));
+      const raw = await api.getThreads(projectId);
+      // Slim down: extract unique users, replace inline user objects with IDs
+      const users = {};
+      const threads = {};
+      for (const [tid, thread] of Object.entries(raw)) {
+        threads[tid] = {
+          messages: (thread.messages || []).map(m => {
+            if (m.user) users[m.user.id] = `${m.user.first_name} ${m.user.last_name}`;
+            return { id: m.id, content: m.content, user: m.user_id, ts: m.timestamp };
+          }),
+          ...(thread.resolved ? { resolved: true } : {}),
+        };
+      }
+      out({ threads, users });
       break;
     }
 
@@ -582,7 +598,23 @@ async function main() {
     case 'history': {
       const projectId = positional[0];
       if (!projectId) die('Usage: overleaf history <project-id>');
-      out(await api.getUpdates(projectId));
+      const raw = await api.getUpdates(projectId);
+      // Slim down: replace repeated user objects with just user IDs
+      const users = {};
+      const updates = (raw.updates || []).map(u => {
+        const userIds = (u.meta?.users || []).map(usr => {
+          users[usr.id] = `${usr.first_name} ${usr.last_name}`;
+          return usr.id;
+        });
+        return {
+          fromV: u.fromV, toV: u.toV,
+          users: userIds,
+          ts: u.meta?.start_ts,
+          pathnames: u.pathnames?.length ? u.pathnames : undefined,
+          project_ops: u.project_ops?.length ? u.project_ops : undefined,
+        };
+      });
+      out({ updates, users });
       break;
     }
 
