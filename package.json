@@ -1,0 +1,13 @@
+{
+  "name": "overleaf-cli",
+  "version": "0.1.0",
+  "description": "CLI tool for AI agents to interact with Overleaf",
+  "type": "module",
+  "bin": {
+    "overleaf": "./bin/overleaf.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.40.0",
+    "ws": "^8.0.0"
+  }
+}

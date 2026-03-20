@@ -1,0 +1,6 @@
+{
+  "name": "overleaf-cli",
+  "version": "0.1.0",
+  "description": "Interact with Overleaf LaTeX projects — read, edit, compile, search, and manage files directly from Claude Code.",
+  "autoDiscover": true
+}
