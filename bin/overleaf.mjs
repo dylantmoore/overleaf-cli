@@ -358,13 +358,21 @@ async function main() {
       let fileData;
       try { fileData = readFileSync(localPath); } catch (e) { die(`Cannot read file: ${e.message}`); }
       await api.fetchCsrf();
+      const remoteName = flags.name || basename(localPath);
+      // Resolve folder_id: use --parent flag, or default to root folder
+      let folderId = flags.parent;
+      if (!folderId) {
+        const { sock, projectData } = await connectToProject(session.cookie, projectId);
+        sock.close();
+        folderId = projectData.rootFolder?.[0]?._id;
+        if (!folderId) die('Could not determine root folder ID');
+      }
       const formData = new FormData();
-      formData.append('qqfile', new Blob([fileData]), flags.name || basename(localPath));
-      formData.append('qqfilename', flags.name || basename(localPath));
-      formData.append('qquuid', crypto.randomUUID());
-      formData.append('qqtotalfilesize', fileData.length.toString());
-      if (flags.parent) formData.append('folder_id', flags.parent);
-      const res = await api._fetch(`/project/${projectId}/upload`, { method: 'POST', body: formData, headers: { 'x-csrf-token': api.csrf } });
+      formData.append('relativePath', 'null');
+      formData.append('name', remoteName);
+      formData.append('type', 'application/octet-stream');
+      formData.append('qqfile', new Blob([fileData]), remoteName);
+      const res = await api._fetch(`/project/${projectId}/upload?folder_id=${folderId}`, { method: 'POST', body: formData, headers: { 'x-csrf-token': api.csrf } });
       const result = await res.text();
       try { out(JSON.parse(result)); } catch { out({ status: res.status, response: result }); }
       break;
