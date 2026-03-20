@@ -64,16 +64,4 @@ The eval suite tests whether the skill effectively guides AI agents to use the C
 | Tool calls | Fewer = faster task completion |
 | Error recovery | Did the agent handle errors gracefully or spiral? |
 
-### Benchmark history
-
-| Metric | No Skill | Skill v1 | Skill v2 |
-|---|---|---|---|
-| Avg tokens | 20,690 | 15,089 | 15,041 |
-| Avg duration | 188s | 99s | 140s |
-| Targeted edit adoption | 0% | 0% | **100%** |
-| File corruption incidents | 1 | 0 | 0 |
-| Concurrent edit collisions | N/A | 1 (silent) | 0 (caught) |
-
-The v1 to v2 improvement came from rewriting the skill to emphasize `--old`/`--new` targeted edits and adding a Gotchas section.
-
-**Previous eval results** with full transcripts, timing, and benchmarks are in `overleaf-workspace/iteration-1/` and `overleaf-workspace/iteration-2/`.
+Previous eval results with full transcripts, timing, and benchmarks are in `overleaf-workspace/iteration-1/` and `overleaf-workspace/iteration-2/`.
