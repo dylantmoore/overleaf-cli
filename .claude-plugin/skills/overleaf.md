@@ -9,95 +9,50 @@ description: >
 
 # Overleaf CLI
 
-The `overleaf` command-line tool lets you interact with Overleaf projects. All commands output JSON.
+The `overleaf` command-line tool lets you interact with Overleaf projects. All commands output JSON. Run `overleaf help` for the full command list.
 
 ## Authentication
 
-The user must run `overleaf login` once to authenticate via browser. Session is stored at `~/.config/overleaf-cli/session.json` and auto-refreshes.
+Run `overleaf login` once to authenticate via browser. Session auto-refreshes.
 
-## Quick Reference
+## Core Workflow
 
-### List projects
 ```bash
-overleaf projects
-```
-Returns `{ "projects": [{ "_id": "...", "name": "...", "accessLevel": "..." }] }`
-
-### List files in a project
-```bash
-overleaf files <project-id>
-```
-
-### Read a file (live content via Socket.IO)
-```bash
-overleaf read <project-id> <path>         # JSON output
-overleaf read <project-id> <path> --raw   # Plain text
+overleaf projects                                    # List projects, get IDs
+overleaf files <project-id>                          # See file tree
+overleaf read <project-id> main.tex                  # Read file (JSON)
+overleaf read <project-id> main.tex --raw            # Read file (plain text)
+overleaf edit <project-id> main.tex --content "..."  # Replace file content
+overleaf compile <project-id>                        # Compile, get status
+overleaf pdf <project-id> -o paper.pdf               # Download compiled PDF
 ```
 
-### Edit a file
+Start with `overleaf projects` to get the project ID, then `overleaf files` to see paths.
+
+## Suggesting Changes (Track Changes)
+
+`suggest` creates real Overleaf tracked changes with accept/reject in the editor UI:
+
 ```bash
-overleaf edit <project-id> <path> --content "new LaTeX content"
-echo "content" | overleaf edit <project-id> <path>
+overleaf suggest <project-id> main.tex --content "proposed new content"
 ```
 
-### Suggest an edit (preview without applying)
+To accept programmatically (change IDs come from `overleaf read` ranges or the Overleaf UI):
+
 ```bash
-overleaf suggest <project-id> <path> --content "proposed content"
-overleaf suggest <project-id> <path> --content "proposed content" --apply  # apply it
+overleaf accept-changes <project-id> <doc-id> <change-id1> [change-id2...]
 ```
 
-### Compile and download PDF
-```bash
-overleaf compile <project-id>                    # Compile, get status
-overleaf pdf <project-id> -o paper.pdf           # Compile + download PDF
-```
+## Additional Commands
 
-### File management
-```bash
-overleaf create-doc <project-id> <name>          # Create new .tex file
-overleaf create-folder <project-id> <name>       # Create folder
-overleaf delete-doc <project-id> <doc-id>        # Delete file
-overleaf rename <project-id> <entity-id> <name>  # Rename
-overleaf move <project-id> <entity-id> <folder-id>  # Move
-overleaf upload <project-id> <local-path>        # Upload file
-overleaf download <project-id> <path> -o <file>  # Download file
-overleaf zip <project-id> -o project.zip         # Download entire project
-```
+Run `overleaf help` or `overleaf <command>` with no args to see usage for any command. Key groups:
 
-### Search across project
-```bash
-overleaf search <project-id> "query string"
-```
+**File management:** `create-doc`, `create-folder`, `delete-doc`, `delete-folder`, `rename`, `move`, `upload`, `download`, `zip`
 
-### Version history and diff
-```bash
-overleaf history <project-id>
-overleaf diff <project-id> <path> --from 0 --to 5
-```
+**Search & history:** `search <project-id> "query"`, `diff <project-id> <path> --from <v> --to <v>`, `history`
 
-### Comments and collaboration
-```bash
-overleaf threads <project-id>                    # View comment threads
-overleaf comment <project-id> <thread-id> <text> # Reply to thread
-overleaf add-comment <project-id> <path> <text> --position <offset>  # Create anchored comment
-overleaf resolve-thread <project-id> <doc-id> <thread-id>   # Resolve a thread
-overleaf reopen-thread <project-id> <doc-id> <thread-id>    # Reopen a thread
-overleaf delete-thread <project-id> <doc-id> <thread-id>    # Delete a thread
-overleaf edit-comment <project-id> <thread-id> <message-id> <text>  # Edit a message
-overleaf delete-comment <project-id> <thread-id> <message-id>       # Delete a message
-```
+**Comments:** `threads`, `comment` (reply), `add-comment` (anchored, needs `--position`), `resolve-thread`, `reopen-thread`, `delete-thread`, `edit-comment`, `delete-comment`
 
-### Other
-```bash
-overleaf wordcount <project-id>
-overleaf watch <project-id>                      # Stream real-time changes (JSONL)
-```
+**Projects:** `create-project`, `rename-project`
 
-## Workflow Tips
-
-1. **Always start with `overleaf projects`** to get the project ID
-2. **Use `overleaf files <id>`** to see the file structure before reading/editing
-3. **Use `overleaf read` before `overleaf edit`** to see current content
-4. **Use `overleaf suggest` for review workflows** — show the diff first, then `--apply`
-5. **Pipe content** for complex edits: generate LaTeX, then pipe to `overleaf edit`
-6. **Compile after editing** to verify changes don't break the build
+**Other:** `wordcount`, `watch` (real-time JSONL stream)

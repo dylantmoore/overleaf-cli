@@ -26,7 +26,7 @@ COMMANDS:
   files <project-id>                        List files in a project
   read <project-id> <path>                  Read file content (live via Socket.IO)
   edit <project-id> <path>                  Edit a file (stdin or --content)
-  suggest <project-id> <path>               Suggest an edit (shows diff, doesn't apply)
+  suggest <project-id> <path>               Suggest an edit (tracked changes in editor)
   create-doc <project-id> <name>            Create a new document
   delete-doc <project-id> <doc-id>          Delete a document
   create-folder <project-id> <name>         Create a new folder
@@ -62,7 +62,7 @@ OPTIONS:
   --name <name>       Remote filename (for upload)
   --from <v>          Start version (for diff, default: 0)
   --to <v>            End version (for diff, default: latest)
-  --apply             Apply suggested changes (for suggest)
+  --apply             (unused, kept for compatibility)
   --position <n>      Character offset for anchoring a comment
   --help              Show this help
 
