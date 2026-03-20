@@ -46,6 +46,7 @@ COMMANDS:
   delete-thread <project-id> <doc-id> <thread-id>    Delete a thread
   edit-comment <project-id> <thread-id> <message-id> <text>  Edit a message
   delete-comment <project-id> <thread-id> <message-id>       Delete a message
+  accept-changes <project-id> <doc-id> <change-ids...>      Accept tracked changes
   diff <project-id> <path>                  Show file diff between versions
   search <project-id> <query>               Search across all project files
   watch <project-id>                        Stream real-time changes (JSONL)
@@ -246,46 +247,57 @@ async function main() {
 
     case 'suggest': {
       const [projectId, filePath] = positional;
-      if (!projectId || !filePath) die('Usage: overleaf suggest <project-id> <path> --content "new content" [--apply]');
+      if (!projectId || !filePath) die('Usage: overleaf suggest <project-id> <path> --content "new content"');
       let newContent = flags.content;
       if (newContent == null) newContent = await readStdin();
       if (newContent == null) die('No content provided. Use --content or pipe via stdin');
 
-      const { content: oldContent } = await readDocViaSocket(session.cookie, projectId, filePath);
+      const normalizedPath = normalizePath(filePath);
+      const { sock, projectData, projectInfo } = await connectToProject(session.cookie, projectId);
+      try {
+        const docId = findDocId(projectData, normalizedPath);
+        if (!docId) die(`File not found: ${normalizedPath}`);
 
-      if (oldContent === newContent) { out({ success: true, message: 'No changes needed' }); break; }
+        // Get user ID from project info
+        const userId = projectInfo.publicId ? null : undefined;
+        // Fetch from meta instead
+        await api.fetchCsrf();
+        const projRes = await api._fetch(`/project/${projectId}`);
+        const projHtml = await projRes.text();
+        const userIdMatch = projHtml.match(/ol-user_id[^"]*"\s+content="([^"]*)"/);
+        const uid = userIdMatch?.[1];
+        if (!uid) die('Could not determine user ID');
 
-      // Compute a simple line-based diff
-      const oldLines = oldContent.split('\n');
-      const newLines = newContent.split('\n');
-      const changes = [];
-      const maxLen = Math.max(oldLines.length, newLines.length);
-      for (let i = 0; i < maxLen; i++) {
-        if (oldLines[i] !== newLines[i]) {
-          changes.push({
-            line: i + 1,
-            old: oldLines[i] ?? null,
-            new: newLines[i] ?? null,
-          });
+        // Enable track changes for this user
+        await api.enableTrackChanges(projectId, uid);
+
+        // Join doc and apply changes as tracked
+        const { lines, version } = await sock.joinDoc(docId);
+        const oldContent = lines.join('\n');
+
+        if (oldContent === newContent) {
+          await api.disableTrackChanges(projectId, uid);
+          out({ success: true, message: 'No changes needed' });
+          break;
         }
-      }
 
-      if (flags.apply) {
-        // Apply the changes
-        const normalizedPath = normalizePath(filePath);
-        const { sock, projectData } = await connectToProject(session.cookie, projectId);
-        try {
-          const docId = findDocId(projectData, normalizedPath);
-          if (!docId) die(`File not found: ${normalizedPath}`);
-          const { lines, version } = await sock.joinDoc(docId);
-          const currentContent = lines.join('\n');
-          await sock.applyUpdate(docId, buildReplaceOps(currentContent, newContent), version);
-          await sock.leaveDoc(docId);
-          out({ success: true, applied: true, path: filePath, changes: changes.length });
-        } finally { sock.close(); }
-      } else {
-        out({ path: filePath, applied: false, changes, oldLength: oldContent.length, newLength: newContent.length });
-      }
+        // Apply the replacement as tracked changes
+        const ops = buildReplaceOps(oldContent, newContent);
+        await sock.applyTrackedUpdate(docId, ops, version);
+        await sock.leaveDoc(docId);
+
+        // Disable track changes mode
+        await api.disableTrackChanges(projectId, uid);
+
+        out({ success: true, path: filePath, mode: 'tracked', message: 'Changes submitted as tracked changes. Review in Overleaf editor.' });
+      } finally { sock.close(); }
+      break;
+    }
+
+    case 'accept-changes': {
+      const [projectId, docId, ...changeIds] = positional;
+      if (!projectId || !docId || !changeIds.length) die('Usage: overleaf accept-changes <project-id> <doc-id> <change-id1> [change-id2...]');
+      out(await api.acceptChanges(projectId, docId, changeIds));
       break;
     }
 
