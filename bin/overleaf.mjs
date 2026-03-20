@@ -25,7 +25,7 @@ COMMANDS:
   rename-project <project-id> <new-name>    Rename a project
   files <project-id>                        List files in a project
   read <project-id> <path>                  Read file content (live via Socket.IO)
-  edit <project-id> <path>                  Edit a file (stdin or --content)
+  edit <project-id> <path>                  Edit a file (targeted or full replace)
   suggest <project-id> <path>               Suggest an edit (tracked changes in editor)
   create-doc <project-id> <name>            Create a new document
   delete-doc <project-id> <doc-id>          Delete a document
@@ -92,6 +92,8 @@ function parseArgs(argv) {
     else if (a === '--help') flags.help = true;
     else if (a === '--apply') flags.apply = true;
     else if (a === '-o' && i + 1 < args.length) flags.output = args[++i];
+    else if (a === '--old' && i + 1 < args.length) flags.old = args[++i];
+    else if (a === '--new' && i + 1 < args.length) flags.new = args[++i];
     else if (a === '--cookie' && i + 1 < args.length) flags.cookie = args[++i];
     else if (a === '--content' && i + 1 < args.length) flags.content = args[++i];
     else if (a === '--parent' && i + 1 < args.length) flags.parent = args[++i];
@@ -228,10 +230,7 @@ async function main() {
 
     case 'edit': {
       const [projectId, filePath] = positional;
-      if (!projectId || !filePath) die('Usage: overleaf edit <project-id> <path>');
-      let newContent = flags.content;
-      if (newContent == null) newContent = await readStdin();
-      if (newContent == null) die('No content provided. Use --content or pipe via stdin');
+      if (!projectId || !filePath) die('Usage: overleaf edit <project-id> <path> --old "find" --new "replace"');
 
       const normalizedPath = normalizePath(filePath);
       const { sock, projectData } = await connectToProject(session.cookie, projectId);
@@ -239,60 +238,82 @@ async function main() {
         const docId = findDocId(projectData, normalizedPath);
         if (!docId) die(`File not found: ${normalizedPath}`);
         const { lines, version } = await sock.joinDoc(docId);
-        const oldContent = lines.join('\n');
-        if (oldContent === newContent) { out({ success: true, message: 'No changes needed' }); break; }
-        await sock.applyUpdate(docId, buildReplaceOps(oldContent, newContent), version);
-        await sock.leaveDoc(docId);
-        out({ success: true, path: filePath, bytesWritten: newContent.length });
+        const currentContent = lines.join('\n');
+
+        let ops;
+        if (flags.old != null && flags.new != null) {
+          // Targeted edit: find old_string, replace with new_string
+          const pos = currentContent.indexOf(flags.old);
+          if (pos === -1) die(`old string not found in ${filePath}`);
+          // Check for ambiguity
+          if (currentContent.indexOf(flags.old, pos + 1) !== -1) {
+            die(`old string is not unique in ${filePath}. Provide more context to make it unique.`);
+          }
+          ops = [];
+          if (flags.old.length > 0) ops.push({ d: flags.old, p: pos });
+          if (flags.new.length > 0) ops.push({ i: flags.new, p: pos });
+          await sock.applyUpdate(docId, ops, version);
+          await sock.leaveDoc(docId);
+          out({ success: true, path: filePath, matched: pos, replaced: flags.old.length, inserted: flags.new.length });
+        } else {
+          // Full replacement: --content or stdin
+          let newContent = flags.content;
+          if (newContent == null) newContent = await readStdin();
+          if (newContent == null) die('Provide --old "..." --new "..." for targeted edit, or --content for full replacement');
+          if (currentContent === newContent) { out({ success: true, message: 'No changes needed' }); break; }
+          await sock.applyUpdate(docId, buildReplaceOps(currentContent, newContent), version);
+          await sock.leaveDoc(docId);
+          out({ success: true, path: filePath, bytesWritten: newContent.length });
+        }
       } finally { sock.close(); }
       break;
     }
 
     case 'suggest': {
       const [projectId, filePath] = positional;
-      if (!projectId || !filePath) die('Usage: overleaf suggest <project-id> <path> --content "new content"');
-      let newContent = flags.content;
-      if (newContent == null) newContent = await readStdin();
-      if (newContent == null) die('No content provided. Use --content or pipe via stdin');
+      if (!projectId || !filePath) die('Usage: overleaf suggest <project-id> <path> --old "find" --new "replace"');
 
       const normalizedPath = normalizePath(filePath);
-      const { sock, projectData, projectInfo } = await connectToProject(session.cookie, projectId);
+      const { sock, projectData } = await connectToProject(session.cookie, projectId);
       try {
         const docId = findDocId(projectData, normalizedPath);
         if (!docId) die(`File not found: ${normalizedPath}`);
 
-        // Get user ID from project info
-        const userId = projectInfo.publicId ? null : undefined;
-        // Fetch from meta instead
+        // Get user ID for track changes
         await api.fetchCsrf();
         const projRes = await api._fetch(`/project/${projectId}`);
         const projHtml = await projRes.text();
-        const userIdMatch = projHtml.match(/ol-user_id[^"]*"\s+content="([^"]*)"/);
-        const uid = userIdMatch?.[1];
+        const uid = projHtml.match(/ol-user_id[^"]*"\s+content="([^"]*)"/)?.[1];
         if (!uid) die('Could not determine user ID');
 
-        // Enable track changes for this user
         await api.enableTrackChanges(projectId, uid);
 
-        // Join doc and apply changes as tracked
         const { lines, version } = await sock.joinDoc(docId);
-        const oldContent = lines.join('\n');
+        const currentContent = lines.join('\n');
 
-        if (oldContent === newContent) {
-          await api.disableTrackChanges(projectId, uid);
-          out({ success: true, message: 'No changes needed' });
-          break;
+        let ops;
+        if (flags.old != null && flags.new != null) {
+          // Targeted tracked edit
+          const pos = currentContent.indexOf(flags.old);
+          if (pos === -1) { await api.disableTrackChanges(projectId, uid); die(`old string not found in ${filePath}`); }
+          if (currentContent.indexOf(flags.old, pos + 1) !== -1) { await api.disableTrackChanges(projectId, uid); die(`old string is not unique in ${filePath}. Provide more context.`); }
+          ops = [];
+          if (flags.old.length > 0) ops.push({ d: flags.old, p: pos });
+          if (flags.new.length > 0) ops.push({ i: flags.new, p: pos });
+        } else {
+          // Full replacement
+          let newContent = flags.content;
+          if (newContent == null) newContent = await readStdin();
+          if (newContent == null) { await api.disableTrackChanges(projectId, uid); die('Provide --old "..." --new "..." for targeted suggest, or --content for full replacement'); }
+          if (currentContent === newContent) { await api.disableTrackChanges(projectId, uid); out({ success: true, message: 'No changes needed' }); break; }
+          ops = buildReplaceOps(currentContent, newContent);
         }
 
-        // Apply the replacement as tracked changes
-        const ops = buildReplaceOps(oldContent, newContent);
         await sock.applyTrackedUpdate(docId, ops, version);
         await sock.leaveDoc(docId);
-
-        // Disable track changes mode
         await api.disableTrackChanges(projectId, uid);
 
-        out({ success: true, path: filePath, mode: 'tracked', message: 'Changes submitted as tracked changes. Review in Overleaf editor.' });
+        out({ success: true, path: filePath, mode: 'tracked' });
       } finally { sock.close(); }
       break;
     }
