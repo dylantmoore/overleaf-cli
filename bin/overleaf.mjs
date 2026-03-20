@@ -427,8 +427,16 @@ async function main() {
       try {
         const docId = findDocId(projectData, normalizedPath);
         if (!docId) die(`File not found: ${normalizedPath}`);
-        await sock.addComment(docId, threadId, text, position);
-        out({ success: true, threadId, messageId: message.id, path: filePath, position });
+        // The comment op anchors "text" at position in the doc
+        // The text in the OT op should be the SELECTED text in the document, not the comment content
+        // Read the doc to get the text at that position
+        const { lines, version } = await sock.joinDoc(docId);
+        const docContent = lines.join('\n');
+        const selectedText = docContent.substring(position, position + 20); // anchor to ~20 chars
+        const ops = [{ c: selectedText, p: position, t: threadId }];
+        await sock.applyUpdate(docId, ops, version);
+        await sock.leaveDoc(docId);
+        out({ success: true, threadId, path: filePath, position, selectedText });
       } finally { sock.close(); }
       break;
     }
