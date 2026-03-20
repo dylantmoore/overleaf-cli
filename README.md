@@ -136,66 +136,7 @@ Run `overleaf help` for the full list. Key commands:
 
 ## Contributing
 
-There are two ways to contribute:
-
-### 1. Add or maintain CLI commands
-
-If Overleaf changes their API or you want to add a new command:
-
-- CLI entry point: `bin/overleaf.mjs`
-- REST API client: `lib/api.mjs`
-- Socket.IO client: `lib/socket.mjs`
-- Auth/login: `lib/auth.mjs`
-
-**Important:** Any change to the CLI must also be updated in:
-- `.claude-plugin/skills/overleaf.md` (the Claude Code skill)
-- The `USAGE` help text in `bin/overleaf.mjs`
-- This README
-
-### 2. Improve the Claude Code skill
-
-The skill at `.claude-plugin/skills/overleaf.md` is what tells Claude how to use the CLI. Improving it makes every AI agent better at using the tool. To contribute skill improvements, you should run the eval suite to prove your changes help.
-
-#### Running the eval suite
-
-The eval suite tests whether the skill effectively guides AI agents to use the CLI correctly. It runs independent agents on realistic tasks and measures tokens, time, tool calls, and behavioral correctness.
-
-**Test cases** are in `evals/evals.json`. Each eval has a prompt, expected output, and assertions.
-
-**To run evals:**
-
-1. Snapshot the current skill before making changes:
-   ```bash
-   cp .claude-plugin/skills/overleaf.md overleaf-workspace/skill-snapshot-old.md
-   ```
-
-2. Make your skill changes in `.claude-plugin/skills/overleaf.md`
-
-3. Run A/B test agents — for each eval, spawn two agents (one with old skill, one with new):
-   ```
-   # With old skill: point agent at the snapshot
-   # With new skill: point agent at .claude-plugin/skills/overleaf.md
-   ```
-
-4. Compare results on these dimensions:
-   - **Behavioral correctness:** Did the agent use the right commands? (e.g., `--old`/`--new` vs `--content`)
-   - **Safety:** Did it avoid file corruption or silent overwrites?
-   - **Token efficiency:** Fewer tokens = less cost per invocation
-   - **Tool calls:** Fewer calls = faster completion
-
-**Results from our benchmarks:**
-
-| Metric | Without Skill | With Skill v1 | With Skill v2 |
-|---|---|---|---|
-| Avg tokens | 20,690 | 15,089 | 15,041 |
-| Avg duration | 188s | 99s | 140s |
-| Targeted edit adoption | 0% | 0% | **100%** |
-| File corruption incidents | 1 | 0 | 0 |
-| Concurrent edit collisions | N/A | 1 (silent) | 0 (caught) |
-
-The v1→v2 improvement came from rewriting the skill to emphasize `--old`/`--new` targeted edits and adding a Gotchas section.
-
-**Previous eval results** are in `overleaf-workspace/iteration-1/` and `overleaf-workspace/iteration-2/` with full transcripts, timing data, and benchmark JSON.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add commands, fix bugs, or improve the Claude Code skill (includes eval suite documentation).
 
 ## License
 
