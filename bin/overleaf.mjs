@@ -68,9 +68,9 @@ OPTIONS:
 
 All commands output JSON by default for easy parsing by AI agents.`;
 
-let compact = false;
+let pretty = false;
 function out(data) {
-  console.log(JSON.stringify(data, compact ? undefined : null, compact ? undefined : 2));
+  console.log(JSON.stringify(data, pretty ? null : undefined, pretty ? 2 : undefined));
 }
 
 function die(msg) {
@@ -88,7 +88,7 @@ function parseArgs(argv) {
     const a = args[i];
     if (a === '--json') flags.json = true;
     else if (a === '--raw') flags.raw = true;
-    else if (a === '--compact') flags.compact = true;
+    else if (a === '--pretty') flags.pretty = true;
     else if (a === '--help') flags.help = true;
     else if (a === '--apply') flags.apply = true;
     else if (a === '-o' && i + 1 < args.length) flags.output = args[++i];
@@ -157,7 +157,7 @@ async function readDocViaSocket(cookie, projectId, filePath) {
 
 async function main() {
   const { cmd, positional, flags } = parseArgs(process.argv);
-  compact = !!flags.compact;
+  pretty = !!flags.pretty;
 
   if (!cmd || cmd === 'help' || flags.help) {
     console.log(USAGE);
