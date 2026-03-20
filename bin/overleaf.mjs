@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import crypto from 'crypto';
 import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from 'fs';
 import { basename, join } from 'path';
 import { tmpdir } from 'os';
@@ -38,7 +39,13 @@ COMMANDS:
   pdf <project-id> -o <file>                Download compiled PDF
   zip <project-id> -o <file>                Download project as zip
   threads <project-id>                      View comment threads
-  comment <project-id> <thread-id> <text>   Add a comment to a thread
+  comment <project-id> <thread-id> <text>   Reply to a thread
+  add-comment <project-id> <path> <text>    Create a new anchored comment
+  resolve-thread <project-id> <doc-id> <thread-id>   Resolve a thread
+  reopen-thread <project-id> <doc-id> <thread-id>    Reopen a thread
+  delete-thread <project-id> <doc-id> <thread-id>    Delete a thread
+  edit-comment <project-id> <thread-id> <message-id> <text>  Edit a message
+  delete-comment <project-id> <thread-id> <message-id>       Delete a message
   diff <project-id> <path>                  Show file diff between versions
   search <project-id> <query>               Search across all project files
   watch <project-id>                        Stream real-time changes (JSONL)
@@ -55,6 +62,7 @@ OPTIONS:
   --from <v>          Start version (for diff, default: 0)
   --to <v>            End version (for diff, default: latest)
   --apply             Apply suggested changes (for suggest)
+  --position <n>      Character offset for anchoring a comment
   --help              Show this help
 
 All commands output JSON by default for easy parsing by AI agents.`;
@@ -88,6 +96,7 @@ function parseArgs(argv) {
     else if (a === '--name' && i + 1 < args.length) flags.name = args[++i];
     else if (a === '--from' && i + 1 < args.length) flags.from = args[++i];
     else if (a === '--to' && i + 1 < args.length) flags.to = args[++i];
+    else if (a === '--position' && i + 1 < args.length) flags.position = args[++i];
     else positional.push(a);
   }
 
@@ -400,6 +409,63 @@ async function main() {
       const text = textParts.join(' ') || flags.content;
       if (!projectId || !threadId || !text) die('Usage: overleaf comment <project-id> <thread-id> <text>');
       out(await api.sendMessage(projectId, threadId, text));
+      break;
+    }
+
+    case 'add-comment': {
+      const [projectId, filePath, ...textParts] = positional;
+      const text = textParts.join(' ') || flags.content;
+      if (!projectId || !filePath || !text) die('Usage: overleaf add-comment <project-id> <path> <text> --position <offset>');
+      const position = parseInt(flags.position);
+      if (isNaN(position)) die('--position <offset> is required');
+      const threadId = crypto.randomBytes(12).toString('hex');
+      // Create the thread via REST
+      const message = await api.sendMessage(projectId, threadId, text);
+      // Anchor the comment via Socket.IO OT op
+      const normalizedPath = normalizePath(filePath);
+      const { sock, projectData } = await connectToProject(session.cookie, projectId);
+      try {
+        const docId = findDocId(projectData, normalizedPath);
+        if (!docId) die(`File not found: ${normalizedPath}`);
+        await sock.addComment(docId, threadId, text, position);
+        out({ success: true, threadId, messageId: message.id, path: filePath, position });
+      } finally { sock.close(); }
+      break;
+    }
+
+    case 'resolve-thread': {
+      const [projectId, docId, threadId] = positional;
+      if (!projectId || !docId || !threadId) die('Usage: overleaf resolve-thread <project-id> <doc-id> <thread-id>');
+      out(await api.resolveThread(projectId, docId, threadId));
+      break;
+    }
+
+    case 'reopen-thread': {
+      const [projectId, docId, threadId] = positional;
+      if (!projectId || !docId || !threadId) die('Usage: overleaf reopen-thread <project-id> <doc-id> <thread-id>');
+      out(await api.reopenThread(projectId, docId, threadId));
+      break;
+    }
+
+    case 'delete-thread': {
+      const [projectId, docId, threadId] = positional;
+      if (!projectId || !docId || !threadId) die('Usage: overleaf delete-thread <project-id> <doc-id> <thread-id>');
+      out(await api.deleteThread(projectId, docId, threadId));
+      break;
+    }
+
+    case 'edit-comment': {
+      const [projectId, threadId, messageId, ...textParts] = positional;
+      const text = textParts.join(' ') || flags.content;
+      if (!projectId || !threadId || !messageId || !text) die('Usage: overleaf edit-comment <project-id> <thread-id> <message-id> <text>');
+      out(await api.editMessage(projectId, threadId, messageId, text));
+      break;
+    }
+
+    case 'delete-comment': {
+      const [projectId, threadId, messageId] = positional;
+      if (!projectId || !threadId || !messageId) die('Usage: overleaf delete-comment <project-id> <thread-id> <message-id>');
+      out(await api.deleteMessage(projectId, threadId, messageId));
       break;
     }
 

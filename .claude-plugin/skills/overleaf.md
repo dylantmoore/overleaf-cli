@@ -79,6 +79,12 @@ overleaf diff <project-id> <path> --from 0 --to 5
 ```bash
 overleaf threads <project-id>                    # View comment threads
 overleaf comment <project-id> <thread-id> <text> # Reply to thread
+overleaf add-comment <project-id> <path> <text> --position <offset>  # Create anchored comment
+overleaf resolve-thread <project-id> <doc-id> <thread-id>   # Resolve a thread
+overleaf reopen-thread <project-id> <doc-id> <thread-id>    # Reopen a thread
+overleaf delete-thread <project-id> <doc-id> <thread-id>    # Delete a thread
+overleaf edit-comment <project-id> <thread-id> <message-id> <text>  # Edit a message
+overleaf delete-comment <project-id> <thread-id> <message-id>       # Delete a message
 ```
 
 ### Other
