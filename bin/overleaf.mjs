@@ -102,6 +102,7 @@ function parseArgs(argv) {
     else if (a === '--from' && i + 1 < args.length) flags.from = args[++i];
     else if (a === '--to' && i + 1 < args.length) flags.to = args[++i];
     else if (a === '--position' && i + 1 < args.length) flags.position = args[++i];
+    else if (a === '--at-text' && i + 1 < args.length) flags.atText = args[++i];
     else positional.push(a);
   }
 
@@ -139,6 +140,12 @@ async function connectToProject(cookie, projectId) {
   await sock.connect(projectId);
   const [projectInfo] = await sock.joinProject(projectId);
   return { sock, projectInfo, projectData: projectInfo.project };
+}
+
+async function getRootFolderId(cookie, projectId) {
+  const { sock, projectData } = await connectToProject(cookie, projectId);
+  sock.close();
+  return projectData.rootFolder?.[0]?._id;
 }
 
 // Read a doc's live content via socket (returns { content, lines, version, docId })
@@ -328,7 +335,8 @@ async function main() {
     case 'create-doc': {
       const [projectId, name] = positional;
       if (!projectId || !name) die('Usage: overleaf create-doc <project-id> <name>');
-      out(await api.createDoc(projectId, name, flags.parent));
+      const parentId = flags.parent || await getRootFolderId(session.cookie, projectId);
+      out(await api.createDoc(projectId, name, parentId));
       break;
     }
 
@@ -342,7 +350,8 @@ async function main() {
     case 'create-folder': {
       const [projectId, name] = positional;
       if (!projectId || !name) die('Usage: overleaf create-folder <project-id> <name>');
-      out(await api.createFolder(projectId, name, flags.parent));
+      const parentId = flags.parent || await getRootFolderId(session.cookie, projectId);
+      out(await api.createFolder(projectId, name, parentId));
       break;
     }
 
@@ -472,24 +481,30 @@ async function main() {
     case 'add-comment': {
       const [projectId, filePath, ...textParts] = positional;
       const text = textParts.join(' ') || flags.content;
-      if (!projectId || !filePath || !text) die('Usage: overleaf add-comment <project-id> <path> <text> --position <offset>');
-      const position = parseInt(flags.position);
-      if (isNaN(position)) die('--position <offset> is required');
+      if (!projectId || !filePath || !text) die('Usage: overleaf add-comment <project-id> <path> <text> [--position <n> | --at-text "anchor"]');
       const threadId = crypto.randomBytes(12).toString('hex');
-      // Create the thread via REST
       const message = await api.sendMessage(projectId, threadId, text);
-      // Anchor the comment via Socket.IO OT op
       const normalizedPath = normalizePath(filePath);
       const { sock, projectData } = await connectToProject(session.cookie, projectId);
       try {
         const docId = findDocId(projectData, normalizedPath);
         if (!docId) die(`File not found: ${normalizedPath}`);
-        // The comment op anchors "text" at position in the doc
-        // The text in the OT op should be the SELECTED text in the document, not the comment content
-        // Read the doc to get the text at that position
         const { lines, version } = await sock.joinDoc(docId);
         const docContent = lines.join('\n');
-        const selectedText = docContent.substring(position, position + 20); // anchor to ~20 chars
+        // Resolve position: --at-text finds it automatically, --position uses raw offset
+        let position;
+        let selectedText;
+        if (flags.atText) {
+          position = docContent.indexOf(flags.atText);
+          if (position === -1) die(`Text not found in ${filePath}: "${flags.atText}"`);
+          selectedText = flags.atText;
+        } else if (flags.position != null) {
+          position = parseInt(flags.position);
+          if (isNaN(position)) die('--position must be a number');
+          selectedText = docContent.substring(position, position + 20);
+        } else {
+          die('Provide --at-text "text to anchor to" or --position <character-offset>');
+        }
         const ops = [{ c: selectedText, p: position, t: threadId }];
         await sock.applyUpdate(docId, ops, version);
         await sock.leaveDoc(docId);

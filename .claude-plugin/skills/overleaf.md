@@ -13,7 +13,7 @@ description: >
 
 # Overleaf CLI
 
-Interact with Overleaf projects from the command line. All commands output JSON to stdout. Run `overleaf help` for the full command list with all flags.
+Interact with Overleaf projects from the command line. All commands output JSON. Run `overleaf help` for the full command list.
 
 ## Authentication
 
@@ -25,49 +25,56 @@ Always start by getting the project ID, then the file paths:
 
 ```bash
 overleaf projects
-# => { "projects": [{ "_id": "abc123", "name": "My Paper", "accessLevel": "owner" }] }
+# => {"projects":[{"_id":"abc123","name":"My Paper","accessLevel":"owner"}]}
 
 overleaf files abc123
-# => { "entities": [{ "path": "/main.tex", "type": "doc" }, { "path": "/refs.bib", "type": "doc" }] }
-
-overleaf read abc123 main.tex
-# => { "path": "main.tex", "content": "\\documentclass{article}\\n..." }
+# => {"entities":[{"path":"/main.tex","type":"doc"},{"path":"/refs.bib","type":"doc"}]}
 
 overleaf read abc123 main.tex --raw
-# => plain text content directly to stdout
+# => plain text content to stdout
 ```
 
-To edit a file, read it first (edit does a full replacement — you need the current content to make surgical changes):
+## Editing Files
+
+**Always prefer targeted `--old`/`--new` edits.** This sends only the changed bytes instead of the entire file, avoiding token waste and reducing the chance of accidental overwrites:
 
 ```bash
-overleaf edit abc123 main.tex --content "full new content here"
-echo "content" | overleaf edit abc123 main.tex    # or pipe via stdin
+overleaf edit abc123 main.tex --old "old text to find" --new "replacement text"
+# => {"success":true,"path":"main.tex","matched":142,"replaced":18,"inserted":16}
 ```
 
-Compile and get the PDF:
+The old string must be unique in the file (like Claude Code's Edit tool). If it's not unique, include more surrounding context.
 
-```bash
-overleaf compile abc123
-# => { "status": "success", "pdfSize": 49172, "compileTime": 583 }
-
-overleaf pdf abc123 -o paper.pdf
-# => { "success": true, "path": "paper.pdf", "bytes": 49172 }
-```
+Full file replacement is available as a fallback for rewrites: `overleaf edit abc123 main.tex --content "entire new content"`
 
 ## Suggesting Changes (Track Changes)
 
-Use `suggest` instead of `edit` when the user wants reviewable changes rather than a silent overwrite. This creates real Overleaf tracked changes — green/red insertions/deletions that collaborators can accept or reject in the editor:
+Use `suggest` instead of `edit` when the user wants reviewable changes. This creates real Overleaf tracked changes (green/red in the editor) that collaborators can accept or reject:
 
 ```bash
-overleaf suggest abc123 main.tex --content "proposed new content"
-# => { "success": true, "mode": "tracked", "message": "Changes submitted as tracked changes..." }
+overleaf suggest abc123 main.tex --old "existing text" --new "proposed replacement"
+# => {"success":true,"path":"main.tex","mode":"tracked"}
 ```
 
 To accept tracked changes programmatically:
-
 ```bash
 overleaf accept-changes abc123 <doc-id> <change-id1> [change-id2...]
 ```
+
+## Compiling
+
+```bash
+overleaf compile abc123
+overleaf pdf abc123 -o paper.pdf
+```
+
+## Gotchas
+
+- **Use `--old`/`--new`, not `--content`** for edits. Full replacement risks overwriting concurrent changes and wastes tokens sending the entire file.
+- **`create-doc` and `create-folder` auto-resolve the root folder.** Use `--parent <folder-id>` only when creating inside a subfolder.
+- **`add-comment` needs an anchor.** Use `--at-text "text to highlight"` (preferred) or `--position <char-offset>`. Example: `overleaf add-comment abc123 main.tex "Fix this typo" --at-text "teh results"`
+- **`resolve-thread` and `delete-thread` need the doc ID**, not just the thread ID. Get doc IDs from the project structure via Socket.IO.
+- **Socket commands may timeout** if the same Overleaf project is open in a browser tab with an active editor session.
 
 ## Additional Commands
 
@@ -77,7 +84,7 @@ Run `overleaf help` or any command with no args to see its usage. Key groups:
 
 **Search & history:** `search abc123 "keyword"`, `diff abc123 main.tex --from 0 --to 5`, `history`
 
-**Comments:** `threads`, `comment` (reply), `add-comment` (anchored at `--position`), `resolve-thread`, `reopen-thread`, `delete-thread`, `edit-comment`, `delete-comment`
+**Comments:** `threads`, `comment` (reply), `add-comment` (with `--at-text`), `resolve-thread`, `reopen-thread`, `delete-thread`, `edit-comment`, `delete-comment`
 
 **Projects:** `create-project`, `rename-project`
 

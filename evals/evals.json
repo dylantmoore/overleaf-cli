@@ -1,0 +1,63 @@
+{
+  "skill_name": "overleaf",
+  "evals": [
+    {
+      "id": 1,
+      "name": "read-and-edit-workflow",
+      "prompt": "I have an Overleaf project called 'CLI Test Complete'. Can you read the main.tex file, find the Introduction section, and change the text there to say 'This document was edited by an AI agent as part of automated testing.' Don't change anything else.",
+      "expected_output": "Agent should: 1) call overleaf projects to find the ID, 2) call overleaf read to get current content, 3) use overleaf edit with --old/--new for a targeted replacement of just the Introduction text",
+      "assertions": [
+        {"text": "Uses overleaf projects to find project ID", "type": "behavior"},
+        {"text": "Uses overleaf read before editing", "type": "behavior"},
+        {"text": "Uses targeted --old/--new edit, not full --content replacement", "type": "behavior"},
+        {"text": "Only changes the Introduction text, preserves everything else", "type": "correctness"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "suggest-changes-workflow",
+      "prompt": "I'm working on the 'CLI Test Complete' project on Overleaf. Can you suggest changing the Methods section to say 'We use a comprehensive automated test suite covering 42 test cases across all CLI commands.' I want to review the change before it's applied.",
+      "expected_output": "Agent should use overleaf suggest (not edit) since the user wants to review first. Should use --old/--new for targeted tracked change.",
+      "assertions": [
+        {"text": "Uses overleaf suggest, not overleaf edit", "type": "behavior"},
+        {"text": "Uses targeted --old/--new flags", "type": "behavior"},
+        {"text": "Explains that the change will appear as a tracked change in Overleaf's Review panel", "type": "communication"}
+      ]
+    },
+    {
+      "id": 3,
+      "name": "compile-and-download",
+      "prompt": "Can you compile my Overleaf project 'CLI Test Complete' and download the PDF to /tmp/test-output.pdf? Also tell me the word count.",
+      "expected_output": "Agent should find project ID, compile, download PDF, and get word count. Should report success with file path and word count stats.",
+      "assertions": [
+        {"text": "Calls overleaf projects first to get ID", "type": "behavior"},
+        {"text": "Calls overleaf pdf with -o flag to download", "type": "behavior"},
+        {"text": "Calls overleaf wordcount", "type": "behavior"},
+        {"text": "Reports the PDF file path and word count to the user", "type": "communication"}
+      ]
+    },
+    {
+      "id": 4,
+      "name": "search-and-comment",
+      "prompt": "Search my 'CLI Test Complete' project for the word 'automated' and add a comment at that location saying 'Consider expanding on the automation methodology'",
+      "expected_output": "Agent should search, find the match with line/position info, then use add-comment with the correct --position offset.",
+      "assertions": [
+        {"text": "Uses overleaf search to find the text", "type": "behavior"},
+        {"text": "Uses overleaf add-comment with --position flag", "type": "behavior"},
+        {"text": "Derives the character position from the search results or by reading the file", "type": "correctness"}
+      ]
+    },
+    {
+      "id": 5,
+      "name": "file-management",
+      "prompt": "In my 'CLI Test Complete' project, create a new folder called 'sections', then create a new file called 'conclusion.tex' inside it, and write a simple LaTeX conclusion section in it.",
+      "expected_output": "Agent should create folder, create doc with --parent flag pointing to the new folder ID, then edit the new file to add content.",
+      "assertions": [
+        {"text": "Creates folder with overleaf create-folder", "type": "behavior"},
+        {"text": "Uses the folder ID from create-folder as --parent for create-doc", "type": "correctness"},
+        {"text": "Writes LaTeX content to the new file using overleaf edit", "type": "behavior"},
+        {"text": "The content is valid LaTeX with a section command", "type": "correctness"}
+      ]
+    }
+  ]
+}
