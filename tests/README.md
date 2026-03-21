@@ -37,7 +37,7 @@ task_*.md ──> run_test.sh ──> judge.sh ──> propose_changes.sh
 
 ### Stage 1: Run (`run_test.sh`)
 
-Extracts the prompt from the `## Task Prompt` section of a task file, prepends the skill doc, and sends it to `claude --print --output-format json`.
+Extracts the prompt from the `## Task Prompt` section of a task file and sends it to `claude --print --output-format stream-json`. The skill triggers naturally from the user's installed plugins — no manual injection.
 
 **Outputs** (in `tests/results/run_NNN/`):
 - `transcript.json` — full Claude response

@@ -9,7 +9,6 @@ unset CLAUDECODE 2>/dev/null || true
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 RESULTS_BASE="$REPO_ROOT/tests/results"
-SKILL_FILE="$REPO_ROOT/.claude-plugin/skills/overleaf.md"
 
 if [[ $# -lt 1 ]]; then
     echo "Usage: $0 <task_file.md>"
@@ -51,28 +50,14 @@ if [[ -z "$PROMPT" ]]; then
     exit 1
 fi
 
-# Build full prompt with skill context
-FULL_PROMPT="Read this skill documentation first:
-
-$(cat "$SKILL_FILE")
-
----
-
-IMPORTANT CONTEXT: The user is already authenticated — do NOT run 'overleaf login'. The session is active. Just start using overleaf commands directly.
-
-Show every overleaf CLI command you run and its full output in your response, so the transcript captures your exact workflow.
-
-Now execute this task:
-
-$PROMPT"
-
 echo "Running claude..."
 START_TIME=$(date +%s)
 
-# Use stream-json to capture tool calls + final result
+# Run with the user's full environment (installed skills trigger naturally).
+# stream-json captures tool calls + final result.
 claude --print \
     --output-format stream-json \
-    -p "$FULL_PROMPT" \
+    -p "$PROMPT" \
     > "$RUN_DIR/transcript.json" 2>"$RUN_DIR/stderr.log" || {
         echo "Warning: claude exited with code $?"
     }
