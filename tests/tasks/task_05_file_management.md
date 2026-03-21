@@ -2,7 +2,7 @@
 
 ## Task Prompt
 
-In my 'CLI Test Complete' project, create a new folder called 'sections', then create a new file called 'conclusion.tex' inside it, and write a simple LaTeX conclusion section in it.
+In my 'Wildfire Modeling Draft' project, create a new folder called 'sections', then create a new file called 'conclusion.tex' inside it, and write a simple LaTeX conclusion section in it.
 
 ## Capabilities Exercised
 

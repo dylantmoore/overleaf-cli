@@ -2,7 +2,7 @@
 
 ## Task Prompt
 
-Search my 'CLI Test Complete' project for the word 'automated' and add a comment at that location saying 'Consider expanding on the automation methodology'
+Search my 'Wildfire Modeling Draft' project for the word 'automated' and add a comment at that location saying 'Consider expanding on the automation methodology'
 
 ## Capabilities Exercised
 

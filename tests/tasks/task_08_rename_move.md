@@ -2,7 +2,7 @@
 
 ## Task Prompt
 
-In my 'CLI Test Complete' project, create a doc called 'temp.tex', then rename it to 'methods_detail.tex', then create a folder called 'extras' and move methods_detail.tex into it. Show me the final file listing.
+In my 'Wildfire Modeling Draft' project, create a doc called 'temp.tex', then rename it to 'methods_detail.tex', then create a folder called 'extras' and move methods_detail.tex into it. Show me the final file listing.
 
 ## Capabilities Exercised
 

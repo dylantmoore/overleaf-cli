@@ -2,7 +2,7 @@
 
 ## Task Prompt
 
-In my 'CLI Test Complete' Overleaf project, download main.tex to /tmp/overleaf-test-download.tex, then upload it back as 'main_backup.tex'. Verify both files exist in the project afterward.
+In my 'Wildfire Modeling Draft' Overleaf project, download main.tex to /tmp/overleaf-test-download.tex, then upload it back as 'main_backup.tex'. Verify both files exist in the project afterward.
 
 ## Capabilities Exercised
 

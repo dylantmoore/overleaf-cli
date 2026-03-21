@@ -60,5 +60,5 @@ See `tests/README.md` for full documentation on the rubric, task format, and dir
 
 - `claude` CLI installed and authenticated
 - `overleaf` CLI installed and authenticated (`overleaf login`)
-- A test Overleaf project (tasks reference 'CLI Test Complete')
+- A test Overleaf project (tasks reference 'Wildfire Modeling Draft')
 - Bash 4+

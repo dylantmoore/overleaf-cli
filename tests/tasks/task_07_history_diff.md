@@ -2,7 +2,7 @@
 
 ## Task Prompt
 
-Show me the version history of my 'CLI Test Complete' Overleaf project. Then show me the diff of main.tex between the first and most recent version.
+Show me the version history of my 'Wildfire Modeling Draft' Overleaf project. Then show me the diff of main.tex between the first and most recent version.
 
 ## Capabilities Exercised
 

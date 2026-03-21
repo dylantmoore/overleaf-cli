@@ -2,7 +2,7 @@
 
 ## Task Prompt
 
-I have an Overleaf project called 'CLI Test Complete'. Can you read the main.tex file, find the Introduction section, and change the text there to say 'This document was edited by an AI agent as part of automated testing.' Don't change anything else.
+I have an Overleaf project called 'Wildfire Modeling Draft'. Can you read the main.tex file, find the Introduction section, and change the text there to say 'This document was edited by an AI agent as part of automated testing.' Don't change anything else.
 
 ## Capabilities Exercised
 

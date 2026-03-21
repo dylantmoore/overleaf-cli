@@ -106,5 +106,5 @@ tests/
 
 - `claude` CLI installed and authenticated
 - `overleaf` CLI installed and authenticated (`overleaf login`)
-- A test Overleaf project (the tasks reference 'CLI Test Complete')
+- A test Overleaf project (the tasks reference 'Wildfire Modeling Draft')
 - Bash 4+
