@@ -24,11 +24,7 @@ done
 
 echo "=== Change Proposer ==="
 
-TRANSCRIPT_TEXT=""
-if command -v jq &>/dev/null; then
-    TRANSCRIPT_TEXT=$(jq -r '.result // empty' "$RESULTS_DIR/transcript.json" 2>/dev/null || true)
-fi
-[[ -n "$TRANSCRIPT_TEXT" ]] || TRANSCRIPT_TEXT=$(cat "$RESULTS_DIR/transcript.json")
+TRANSCRIPT_TEXT=$(cat "$RESULTS_DIR/transcript.json")
 
 PROMPT_FILE=$(mktemp)
 trap 'rm -f "$PROMPT_FILE"' EXIT

@@ -17,7 +17,7 @@ Interact with Overleaf projects from the command line. All commands output JSON.
 
 ## Authentication
 
-Run `overleaf login` once — opens Chrome, user signs in, session is captured automatically.
+If a command fails with "Not authenticated", the user needs to run `overleaf login` (opens Chrome for sign-in). Do not run login preemptively — just start using commands and the CLI will tell you if auth is needed.
 
 ## Core Workflow
 
