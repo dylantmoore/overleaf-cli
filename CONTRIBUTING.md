@@ -17,51 +17,48 @@ If Overleaf changes their API, a command breaks, or you want to add a new comman
 - The `USAGE` help text in `bin/overleaf.mjs`
 - `README.md`
 
-**Testing your changes:** Create a disposable Overleaf project and test every command you touched. The full coverage test (30 commands) is documented in `overleaf-workspace/iteration-2/full-coverage/transcript.md` as a reference for what a successful run looks like.
+**Testing your changes:** Create a disposable Overleaf project and run the test suite against it. See `tests/README.md` for full details.
 
 ## 2. Improve the Claude Code skill
 
-The skill at `.claude-plugin/skills/overleaf.md` is what tells Claude how and when to use the CLI. Improving it makes every AI agent better at using the tool. **To contribute skill improvements, you need to run the eval suite to prove your changes actually help.**
+The skill at `.claude-plugin/skills/overleaf.md` tells Claude how and when to use the CLI. Improving it makes every AI agent better at the tool. **To contribute skill improvements, run the eval suite to prove your changes help.**
 
-### How the eval suite works
+### Quick start
 
-The eval suite tests whether the skill effectively guides AI agents to use the CLI correctly. It runs independent agents on realistic tasks and compares behavior, token cost, and correctness.
+```bash
+# Run one task through the full pipeline (test + judge + propose improvements)
+./tests/scripts/run_pipeline.sh tests/tasks/task_01_read_and_edit.md
 
-**Test cases** are in `evals/evals.json`. Each has a prompt, expected output, and behavioral assertions.
+# Run all 5 tasks
+./tests/scripts/run_all.sh
 
-### Running an A/B test
+# Judge an existing run
+./tests/scripts/judge.sh tests/results/run_001
 
-1. **Snapshot the current skill** before making changes:
-   ```bash
-   cp .claude-plugin/skills/overleaf.md overleaf-workspace/skill-snapshot-old.md
-   ```
+# Get proposed skill edits from judge findings
+./tests/scripts/propose_changes.sh tests/results/run_001
+```
 
-2. **Make your skill changes** in `.claude-plugin/skills/overleaf.md`
+### How it works
 
-3. **Run A/B test agents.** For each eval in `evals/evals.json`, spawn two independent Claude Code subagents:
-   - **Old skill agent:** reads the snapshot at `overleaf-workspace/skill-snapshot-old.md`
-   - **New skill agent:** reads `.claude-plugin/skills/overleaf.md`
+The pipeline has three stages:
 
-   Both agents get the same task prompt and save transcripts to `overleaf-workspace/iteration-N/eval-<name>/{old_skill,new_skill}/outputs/transcript.md`.
+```
+task_*.md ──> run_test.sh ──> judge.sh ──> propose_changes.sh
+                  │                │                │
+                  v                v                v
+           transcript.json  judge_findings.md  proposed_changes.md
+```
 
-4. **Compare results** on these dimensions:
-   - **Behavioral correctness:** Did the agent use the right commands? (e.g., targeted `--old`/`--new` vs full `--content` replacement)
-   - **Safety:** Did it avoid file corruption or silent overwrites?
-   - **Token efficiency:** Fewer tokens = less cost per invocation
-   - **Tool calls:** Fewer calls = faster completion
+1. **Run** — sends the task prompt (with the skill prepended) to `claude --print` and saves the transcript
+2. **Judge** — sends the transcript + rubric to Claude, gets a scored evaluation (7 categories, max 55 points)
+3. **Propose** — sends the judge findings + current skill to Claude, gets concrete file edits to improve the skill
 
-5. **Save timing data** from each agent's task notification (`total_tokens`, `duration_ms`, `tool_uses`) into `timing.json` in each run directory.
+See `tests/README.md` for full documentation on the rubric, task format, and directory structure.
 
-6. **Write a benchmark.json** summarizing the comparison. See `overleaf-workspace/iteration-2/benchmark.json` for the format.
+### Requirements
 
-### What we measure
-
-| Metric | Why it matters |
-|---|---|
-| Targeted edit adoption | Agents using `--old`/`--new` instead of `--content` means the skill is guiding them correctly |
-| File corruption / silent overwrites | Full `--content` replacement can overwrite concurrent edits; targeted edits catch conflicts |
-| Token count | Lower = cheaper to run at scale |
-| Tool calls | Fewer = faster task completion |
-| Error recovery | Did the agent handle errors gracefully or spiral? |
-
-Previous eval results with full transcripts, timing, and benchmarks are in `overleaf-workspace/iteration-1/` and `overleaf-workspace/iteration-2/`.
+- `claude` CLI installed and authenticated
+- `overleaf` CLI installed and authenticated (`overleaf login`)
+- A test Overleaf project (tasks reference 'CLI Test Complete')
+- Bash 4+
