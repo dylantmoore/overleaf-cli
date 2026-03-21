@@ -1,0 +1,1 @@
+PASS: test -s /tmp/test-output.pdf

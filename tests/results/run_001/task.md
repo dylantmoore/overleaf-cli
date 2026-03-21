@@ -1,15 +1,15 @@
-# Task 3: Compile and Download PDF
+# Task 1: Read and Targeted Edit
 
 ## Task Prompt
 
-Can you compile my Overleaf project 'Wildfire Modeling Draft' and download the PDF to /tmp/test-output.pdf? Also tell me the word count.
+I have an Overleaf project called 'Wildfire Modeling Draft'. Can you read the main.tex file, find the Introduction section, and change the text there to say 'This document was edited by an AI agent as part of automated testing.' Don't change anything else.
+
+## Assertions
+
+```bash
+overleaf read $PROJECT main.tex --raw | grep -q "edited by an AI agent as part of automated testing"
+```
 
 ## Capabilities Exercised
 
-- Project lookup (`projects`)
-- Compilation (`compile`, `pdf`)
-- Metadata (`wordcount`)
-
-## Reference Files
-
-- Skill body: Compiling section
+- Project lookup, file reading, targeted editing

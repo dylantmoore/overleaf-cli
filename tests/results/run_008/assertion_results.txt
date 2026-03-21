@@ -1,0 +1,3 @@
+PASS: overleaf threads $PROJECT | grep -q "data tables"
+PASS: overleaf threads $PROJECT | grep -q "add them next week"
+PASS: overleaf threads $PROJECT | grep -q "resolved"

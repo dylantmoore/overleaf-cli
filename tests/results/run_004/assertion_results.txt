@@ -1,0 +1,1 @@
+PASS: overleaf threads $PROJECT | grep -q "automation methodology"

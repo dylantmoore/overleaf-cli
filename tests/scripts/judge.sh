@@ -26,18 +26,29 @@ for f in "$RESULTS_DIR/task.md" "$RESULTS_DIR/transcript.json" "$RUBRIC_FILE"; d
     [[ -f "$f" ]] || { echo "Error: Required file not found: $f"; exit 1; }
 done
 
+TASK_FILE="$RESULTS_DIR/task.md"
+
 echo "=== Judge Evaluation ==="
 echo "Results dir: $RESULTS_DIR"
 
-# ── Resolve project ID ──────────────────────────────────────────────
-PROJECT=$(overleaf projects 2>/dev/null | grep -o '"_id":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
+# ── Resolve project ID from task prompt ──────────────────────────────
+PROJ_NAME=$(grep -o "'[A-Z][^']*'" "$TASK_FILE" | head -1 | tr -d "'")
+if [[ -n "$PROJ_NAME" ]]; then
+    PROJECT=$(overleaf projects 2>/dev/null | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for p in data.get('projects', []):
+    if p['name'] == '$PROJ_NAME':
+        print(p['_id'])
+        break
+" 2>/dev/null || true)
+fi
 if [[ -z "$PROJECT" ]]; then
-    echo "Warning: Could not resolve project ID for assertions"
+    echo "Warning: Could not resolve project ID for '$PROJ_NAME'"
 fi
 export PROJECT
 
 # ── Step 1: Run assertions from task file ───────────────────────────
-TASK_FILE="$RESULTS_DIR/task.md"
 ASSERTIONS=$(awk '/^## Assertions/,/^## [^A]/' "$TASK_FILE" | grep -v '^##' | sed -n '/^```bash/,/^```/p' | grep -v '^```')
 
 ASSERT_RESULTS=""
@@ -51,9 +62,8 @@ if [[ -n "$ASSERTIONS" ]]; then
     while IFS= read -r cmd; do
         [[ -z "$cmd" || "$cmd" =~ ^# ]] && continue
         ASSERT_TOTAL=$((ASSERT_TOTAL + 1))
-        # Expand $PROJECT in the command
-        EXPANDED=$(eval echo "$cmd")
-        if eval "$cmd" 2>/dev/null; then
+        # Disable pipefail for assertion eval (piped commands like `overleaf | grep` return non-zero on no match)
+        if (set +o pipefail; eval "$cmd") 2>/dev/null; then
             ASSERT_PASS=$((ASSERT_PASS + 1))
             ASSERT_RESULTS+="PASS: $cmd\n"
             echo "  PASS: $cmd"

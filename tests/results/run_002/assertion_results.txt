@@ -1,0 +1,1 @@
+FAIL: overleaf read $PROJECT main.tex --raw | grep -q "comprehensive automated test suite"

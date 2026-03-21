@@ -1,32 +1,44 @@
 # Proposed Changes
 
 ## Summary
-The agent scored 3/5 on Completeness because it didn't verify the final text matched the user's full quoted sentence after suggesting, and used a narrow `--old` match string that could be fragile.
+The only weak score is Workflow Efficiency (3/5) — 15 turns for a 3-command pipeline. The skill's Compiling section is too terse and doesn't show the compile→pdf→wordcount sequence as a cohesive pipeline, likely causing the agent to explore rather than execute directly.
 
-## Change 1: Add verification guidance to Suggesting Changes section
-- File: `.claude-plugin/skills/overleaf.md`
-- Action: Add
-- Priority: High
-- Justification: Completeness (3/5) — agent didn't confirm final text matched user's quoted target; Communication (4/5) — didn't show before/after
-- Details: Add after the `suggest` command example block:
+## Change 1: Expand Compiling section into a sequenced pipeline
 
+- **File:** `.claude-plugin/skills/overleaf.md`
+- **Action:** Modify
+- **Priority:** Medium
+- **Justification:** Workflow Efficiency 3/5 — "the optimal path would be ~7-8 commands" but agent took 15 turns. Showing the compile/pdf/wordcount sequence as a clear pipeline gives the agent a direct execution plan.
+- **Details:**
+
+Replace:
+```markdown
+## Compiling
+
+```bash
+overleaf compile abc123
+overleaf pdf abc123 -o paper.pdf
 ```
-**After suggesting, read the file back** to verify the change landed correctly — especially when the user quoted a specific target sentence. Confirm the final text matches their request.
-```
-
-## Change 2: Strengthen `--old` context width guidance in Gotchas
-- File: `.claude-plugin/skills/overleaf.md`
-- Action: Modify
-- Priority: Medium
-- Justification: Flag & Option Usage (4/5) and Safety & Correctness (4/5) — narrow `--old` strings risk ambiguous matches in larger documents
-- Details: Change the first gotcha bullet from:
-
-```
-- **Use `--old`/`--new`, not `--content`** for edits. Full replacement risks overwriting concurrent changes and wastes tokens sending the entire file.
 ```
 
-to:
+With:
+```markdown
+## Compiling & PDF Download
 
+Compile first, then download. `pdf` only works after a successful `compile`:
+
+```bash
+overleaf compile abc123
+# => {"status":"success","compileTime":329}
+
+overleaf pdf abc123 -o paper.pdf
+# => saves PDF to disk
+
+overleaf wordcount abc123
+# => {"texcount":{"textWords":150,"headWords":12,"headers":5,...}}
 ```
-- **Use `--old`/`--new`, not `--content`** for edits. Full replacement risks overwriting concurrent changes and wastes tokens sending the entire file. Include enough surrounding context in `--old` to make the match unambiguous — a few words is fragile; a full sentence or clause is safer.
+
+Run these sequentially — don't attempt `pdf` until `compile` returns success.
 ```
+
+This adds ~3 net lines (well within the 100-line budget) and directly addresses the judge's efficiency finding by making the optimal command sequence explicit. The other six scores are all 4+ and don't warrant skill changes.

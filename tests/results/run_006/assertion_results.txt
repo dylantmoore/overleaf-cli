@@ -1,0 +1,2 @@
+PASS: test -s /tmp/overleaf-test-download.tex
+PASS: overleaf files $PROJECT | grep -q "main_backup.tex"

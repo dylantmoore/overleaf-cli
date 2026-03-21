@@ -1,0 +1,2 @@
+PASS: overleaf files $PROJECT | grep -q "sections/conclusion.tex"
+PASS: overleaf read $PROJECT sections/conclusion.tex --raw | grep -q "\\section"

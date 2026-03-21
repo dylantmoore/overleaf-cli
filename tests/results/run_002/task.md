@@ -1,15 +1,16 @@
-# Task 1: Read and Targeted Edit
+# Task 2: Suggest Tracked Changes
 
 ## Task Prompt
 
-I have an Overleaf project called 'Wildfire Modeling Draft'. Can you read the main.tex file, find the Introduction section, and change the text there to say 'This document was edited by an AI agent as part of automated testing.' Don't change anything else.
+I'm working on the 'Wildfire Modeling Draft' project on Overleaf. Can you suggest changing the Methods section to say 'We use a comprehensive automated test suite covering 42 test cases across all CLI commands.' I want to review the change before it's applied.
+
+## Assertions
+
+```bash
+# The suggest command creates tracked changes, which modify the doc content
+overleaf read $PROJECT main.tex --raw | grep -q "comprehensive automated test suite"
+```
 
 ## Capabilities Exercised
 
-- Project lookup (`projects`)
-- File reading (`read`)
-- Targeted editing (`edit --old/--new`)
-
-## Reference Files
-
-- Skill body: Core Workflow, Editing Files sections
+- Choosing `suggest` over `edit`, tracked changes

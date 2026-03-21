@@ -1,0 +1,1 @@
+PASS: overleaf read $PROJECT main.tex --raw | grep -q "edited by an AI agent as part of automated testing"

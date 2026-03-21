@@ -1,15 +1,15 @@
-# Task 2: Suggest Tracked Changes
+# Task 3: Compile and Download PDF
 
 ## Task Prompt
 
-I'm working on the 'Wildfire Modeling Draft' project on Overleaf. Can you suggest changing the Methods section to say 'We use a comprehensive automated test suite covering 42 test cases across all CLI commands.' I want to review the change before it's applied.
+Can you compile my Overleaf project 'Wildfire Modeling Draft' and download the PDF to /tmp/test-output.pdf? Also tell me the word count.
+
+## Assertions
+
+```bash
+test -s /tmp/test-output.pdf
+```
 
 ## Capabilities Exercised
 
-- Project lookup (`projects`)
-- Choosing `suggest` over `edit` (user wants review)
-- Tracked changes via `--old`/`--new`
-
-## Reference Files
-
-- Skill body: Suggesting Changes section
+- Compilation, PDF download, word count

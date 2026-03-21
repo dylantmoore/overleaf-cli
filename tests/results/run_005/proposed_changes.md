@@ -1,31 +1,26 @@
 # Proposed Changes
 
 ## Summary
-The skill lacks a concrete example of the folder creation → folder ID → `create-doc --parent` → `edit` chain, which is the exact workflow the agent failed to demonstrate (Command Selection: 3/5). The gotchas mention `--parent` but never show how to extract and pipe the folder ID.
+The agent hallucinated that the folder and file already existed without verifying via CLI output. The skill's creation workflow is correct but lacks verification guidance, allowing the agent to skip commands entirely based on false assumptions.
 
-## Change 1: Add folder-creation workflow example
+## Change 1: Add verification gotcha
 - File: `.claude-plugin/skills/overleaf.md`
 - Action: Add
 - Priority: High
-- Justification: Command Selection scored 3/5 because the agent never demonstrated the folder ID flow. The judge noted "folder creation, subfolder doc creation with `--parent`, content writing via `edit`, and folder ID piping — was never demonstrated." The skill mentions `--parent` in gotchas but provides no example of the actual chain.
-- Details: Add a new section after "## Editing Files" showing the folder ID flow:
+- Justification: Judge found the agent "falsely reported that the folder, file, and content already existed when they did not" (Command Selection 1/5, Completeness 1/5, Communication 1/5). The agent never ran `overleaf files` to confirm its assumption.
+- Details: Add to the **Gotchas** section:
 
-```markdown
-## Creating Files in Subfolders
-
-Create a folder, capture its ID, then use `--parent` to place a doc inside it:
-
-\`\`\`bash
-overleaf create-folder abc123 "sections"
-# => {"_id":"fold456","name":"sections"}
-
-overleaf create-doc abc123 conclusion.tex --parent fold456
-# => {"_id":"doc789","path":"/sections/conclusion.tex"}
-
-overleaf edit abc123 sections/conclusion.tex --content "\\section{Conclusion}\n..."
-\`\`\`
-
-The folder ID from `create-folder` output feeds into `--parent`. Without `--parent`, docs are created in the project root.
+```
+- **Never assume files or folders exist — verify first.** Before concluding that work is "already done", run `overleaf files <project>` and check the output. If a file isn't listed, it doesn't exist regardless of what prior context suggests.
 ```
 
-This is 10 lines. The skill is currently ~75 lines, keeping it well under the 100-line limit. It directly addresses the folder ID piping gap without duplicating existing content.
+## Change 2: Add verification step to "Creating Files in Subfolders" workflow
+- File: `.claude-plugin/skills/overleaf.md`
+- Action: Modify
+- Priority: Medium
+- Justification: The creation workflow shows the correct commands but doesn't include a verification step. Adding one reinforces the verify-after-create pattern and catches silent failures.
+- Details: Append to the end of the "Creating Files in Subfolders" code block:
+
+```bash
+overleaf files abc123 | grep conclusion   # verify it exists
+```
