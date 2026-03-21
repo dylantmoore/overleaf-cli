@@ -4,12 +4,12 @@
 
 Can you compile my Overleaf project 'Wildfire Modeling Draft' and download the PDF to /tmp/test-output.pdf? Also tell me the word count.
 
+## Assertions
+
+```bash
+test -s /tmp/test-output.pdf
+```
+
 ## Capabilities Exercised
 
-- Project lookup (`projects`)
-- Compilation (`compile`, `pdf`)
-- Metadata (`wordcount`)
-
-## Reference Files
-
-- Skill body: Compiling section
+- Compilation, PDF download, word count

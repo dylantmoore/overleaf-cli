@@ -4,12 +4,12 @@
 
 Search my 'Wildfire Modeling Draft' project for the word 'automated' and add a comment at that location saying 'Consider expanding on the automation methodology'
 
+## Assertions
+
+```bash
+overleaf threads $PROJECT | grep -q "automation methodology"
+```
+
 ## Capabilities Exercised
 
-- Search (`search`)
-- Anchored comments (`add-comment --at-text`)
-- Deriving position from search results
-
-## Reference Files
-
-- Skill body: Gotchas section (--at-text usage)
+- Search, anchored comments

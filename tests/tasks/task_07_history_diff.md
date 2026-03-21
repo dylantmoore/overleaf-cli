@@ -4,12 +4,13 @@
 
 Show me the version history of my 'Wildfire Modeling Draft' Overleaf project. Then show me the diff of main.tex between the first and most recent version.
 
+## Assertions
+
+```bash
+# No state change — this is read-only. Judge evaluates output quality.
+true
+```
+
 ## Capabilities Exercised
 
-- Version history (`history`)
-- File diff (`diff --from --to`)
-- Interpreting version numbers from history output
-
-## Reference Files
-
-- Skill body: Additional Commands (Search & history)
+- Version history, file diff, interpreting version numbers

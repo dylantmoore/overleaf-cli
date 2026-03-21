@@ -4,12 +4,13 @@
 
 In my 'Wildfire Modeling Draft' Overleaf project, download main.tex to /tmp/overleaf-test-download.tex, then upload it back as 'main_backup.tex'. Verify both files exist in the project afterward.
 
+## Assertions
+
+```bash
+test -s /tmp/overleaf-test-download.tex
+overleaf files $PROJECT | grep -q "main_backup.tex"
+```
+
 ## Capabilities Exercised
 
-- File download (`download -o`)
-- File upload (`upload --name`)
-- File listing verification (`files`)
-
-## Reference Files
-
-- Skill body: Additional Commands (File management)
+- File download, file upload with --name
