@@ -47,6 +47,22 @@ The old string must be unique in the file (like Claude Code's Edit tool). If it'
 
 Full file replacement is available as a fallback for rewrites: `overleaf edit abc123 main.tex --content "entire new content"`
 
+## Creating Files in Subfolders
+
+Create a folder, capture its ID, then use `--parent` to place a doc inside it:
+
+```bash
+overleaf create-folder abc123 "sections"
+# => {"_id":"fold456","name":"sections"}
+
+overleaf create-doc abc123 conclusion.tex --parent fold456
+# => {"_id":"doc789","name":"conclusion.tex"}
+
+overleaf edit abc123 sections/conclusion.tex --content "\\section{Conclusion}\n..."
+```
+
+The folder ID from `create-folder` output feeds into `--parent`. Without `--parent`, docs are created in the project root.
+
 ## Suggesting Changes (Track Changes)
 
 Use `suggest` instead of `edit` when the user wants reviewable changes. This creates real Overleaf tracked changes (green/red in the editor) that collaborators can accept or reject:
@@ -55,6 +71,8 @@ Use `suggest` instead of `edit` when the user wants reviewable changes. This cre
 overleaf suggest abc123 main.tex --old "existing text" --new "proposed replacement"
 # => {"success":true,"path":"main.tex","mode":"tracked"}
 ```
+
+After suggesting, read the file back to verify the change landed correctly — especially when the user quoted a specific target sentence.
 
 To accept tracked changes programmatically:
 ```bash
@@ -70,7 +88,7 @@ overleaf pdf abc123 -o paper.pdf
 
 ## Gotchas
 
-- **Use `--old`/`--new`, not `--content`** for edits. Full replacement risks overwriting concurrent changes and wastes tokens sending the entire file.
+- **Use `--old`/`--new`, not `--content`** for edits. Include enough surrounding context in `--old` to ensure a unique match — short strings risk matching the wrong location in longer documents.
 - **`create-doc` and `create-folder` auto-resolve the root folder.** Use `--parent <folder-id>` only when creating inside a subfolder.
 - **`add-comment` needs an anchor.** Use `--at-text "text to highlight"` (preferred) or `--position <char-offset>`. Example: `overleaf add-comment abc123 main.tex "Fix this typo" --at-text "teh results"`
 - **`resolve-thread` and `delete-thread` need the doc ID**, not just the thread ID. Get doc IDs from the project structure via Socket.IO.

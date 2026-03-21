@@ -54,9 +54,8 @@ echo "Running claude..."
 START_TIME=$(date +%s)
 
 # Run with the user's full environment (installed skills trigger naturally).
-# stream-json captures tool calls + final result.
 claude --print \
-    --output-format stream-json \
+    --output-format json \
     -p "$PROMPT" \
     > "$RUN_DIR/transcript.json" 2>"$RUN_DIR/stderr.log" || {
         echo "Warning: claude exited with code $?"
