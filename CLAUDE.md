@@ -18,8 +18,9 @@ All three must stay in sync. If you add a command, update all three. If you chan
 
 ## Key Design Decisions
 
-- All commands output JSON to stdout for AI agent parsing
+- Compact JSON output to stdout by default (`--pretty` for humans)
 - Errors go to stderr as JSON (preserves Unix pipe semantics)
+- Targeted `--old`/`--new` edits preferred over full `--content` replacement
 - File reads/edits use Socket.IO (live content), not REST blob API
 - `suggest` uses Overleaf's real track changes (`meta.tc` on OT ops)
 - Session cookie auto-refreshes and persists to `~/.config/overleaf-cli/session.json` (mode 0600)
@@ -27,4 +28,22 @@ All three must stay in sync. If you add a command, update all three. If you chan
 
 ## Testing
 
-Test against a disposable Overleaf project. The test suite covers: projects, files, read, edit, suggest, create-doc, delete-doc, create-folder, delete-folder, rename, move, upload, download, compile, pdf, zip, search, diff, history, threads, add-comment, comment, edit-comment, delete-comment, resolve-thread, reopen-thread, delete-thread, accept-changes, wordcount, watch, error cases.
+Test infrastructure is in `tests/`. See `tests/README.md` for full docs.
+
+**Run tests:** `./tests/scripts/run_all.sh` (or `--dry-run` to list tasks)
+**Full pipeline:** `./tests/scripts/run_pipeline.sh tests/tasks/task_01_read_and_edit.md`
+
+The judge uses evidence-based evaluation:
+1. Assertions — shell commands that check actual Overleaf state (pass/fail)
+2. Verification — captures current project files and threads
+3. LLM judge — scores rubric grounded in assertion results and verification output
+
+**Known gotchas in test infra:**
+- Use `--output-format json`, NOT `stream-json` (stream-json produces empty files)
+- Don't inject the skill into the test prompt — let it trigger naturally from installed plugins
+- Project name extraction uses `grep -o "'[A-Z][^']*'"` — do NOT use `grep -P` (unavailable on macOS) or `sed` (breaks on apostrophes like "Don't")
+- Test project is "Wildfire Modeling Draft" on Overleaf (disposable, safe to modify)
+
+## Session Notes
+
+See `notes/` for dated session logs with technical discoveries and lessons learned.
